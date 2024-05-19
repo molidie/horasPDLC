@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contador de Horas</title>
+    <!-- Estilos de Bootstrap -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Fuente de Google (Roboto) -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="ROMAN.png" type="image/x-icon">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: rgb(255, 165, 0);
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            font-size: 50px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        button {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            background-color: #fff;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: 700;
+        }
+
+        .background-image-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50%;
+            height: auto;
+            z-index: -1;
+            background-image: url('ROMAN.png');
+            background-repeat: no-repeat;
+            background-size: auto;
+            opacity: 0.5;
+        }
+
+        header {
+            background-color: rgb(255, 165, 0);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+        }
+
+        .header-title {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .header-image {
+            width: 250px;
+            height: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="background-image-container"></div>
+
+    <div class="container">
+        <header>
+            <h1 class="header-title">Bienvenido a ZONASUR-RP | CONTADOR DE HORAS</h1>
+            <img src="zonaSur.png" alt="Imagen Derecha" class="header-image">
+        </header>
+        <form id="formTexto">
+            <div class="form-group">
+                <label for="texto" class="font-weight-bold">Ingrese los registros correspondientes:</label>
+                <textarea id="texto" name="texto" rows="5" class="form-control"></textarea>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+                <button type="submit" class="btn btn-primary">Procesar Texto</button>
+                <button id="guardarDatosBtn" class="btn btn-primary">Guardar Datos</button>
+            </div>
+        </form>
+        
+        <div id="resultado" class="mt-4"></div>
+
+    </div>
+
+    <footer class="footer mt-auto py-3">
+        <div class="container text-center">
+            <span class="text-muted">Powered by dieglock &reg;</span>
+        </div>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        function sumarTiemposPorIdentificador(texto) {
+            const bloques = texto.split(/\n(?=\bNombre: )/);
+            const tiemposPorIdentificador = {};
+
+            for (const bloque of bloques) {
+                const identifierMatch = bloque.match(/Identifier: (.+)/);
+                const nombreMatch = bloque.match(/Nombre: (.+)/);
+                const tiempoMatch = bloque.match(/Tiempo en Servicio: ((\d+) horas?, )?(\d+\.?\d*) (minutos|hora(s)?)/);
+                const salidaMatch = bloque.match(/Salida: (.+)/)
+
+                if (identifierMatch && nombreMatch && tiempoMatch && salidaMatch) {
+                    const identifier = identifierMatch[1];
+                    const nombreCompleto = nombreMatch[1];
+                    const nombreParts = nombreCompleto.split(' ');
+                    const nombreValido = /^[A-Z][a-z]+ [A-Z][a-z]+$/.test(nombreCompleto);
+                    const salida = salidaMatch[1].substring(0, 11);
+
+                    let horas = tiempoMatch[2] ? parseInt(tiempoMatch[2]) : 0;
+                    let minutos = parseFloat(tiempoMatch[3]);
+                    minutos += horas * 60;
+
+                    if (!tiemposPorIdentificador[identifier]) {
+                        tiemposPorIdentificador[identifier] = { tiempo: 0, salida: salida };
+                    }
+
+                    if (nombreValido) {
+                        tiemposPorIdentificador[identifier].nombre = nombreCompleto;
+                    }
+                    tiemposPorIdentificador[identifier].tiempo += minutos;
+                }
+            }
+
+            return tiemposPorIdentificador;
+        }
+
+        function mostrarResultados(tiemposPorIdentificador) {
+            let resultadoHTML = "<p class='mb-0 font-weight-bold'>Total de horas en servicio según Identifier:</p>";
+            resultadoHTML += "<table class='table mt-2'><thead class='thead-dark'><tr><th>#</th><th>Identifier</th><th>Nombre</th><th>Tiempo en minutos</th><th>Tiempo en horas</th></tr></thead><tbody>";
+
+            let contadorFilas = 1;
+
+            for (const identifier in tiemposPorIdentificador) {
+                const tiempoTotal = tiemposPorIdentificador[identifier].tiempo;
+                const tiempoTotalHoras = Math.floor(tiempoTotal / 60);
+                const tiempoTotalMinutos = tiempoTotal % 60;
+                const minutos = (tiempoTotal % 60).toString().split(".")[0];
+                const nombre = tiemposPorIdentificador[identifier].nombre;
+                const salida = tiemposPorIdentificador[identifier].salida;
+                resultadoHTML += `<tr><td>${contadorFilas}</td><td>${identifier}</td><td>${nombre}</td><td>${tiempoTotal}</td><td>${tiempoTotalHoras} horas, ${tiempoTotalMinutos.toFixed(2)} minutos</td></tr>`;
+                contadorFilas++;
+            }
+
+            resultadoHTML += "</tbody></table>";
+            document.getElementById("resultado").innerHTML = resultadoHTML;
+        }
+
+        function enviarDatosGoogleSheets(usersToSend) {
+            fetch('https://script.google.com/macros/s/AKfycbx6H47UhNtUHTarV7kSMYp6PypK5gsB8QKjo3DU8r4fXlVr7xDLd4XFwbbqOak8z5k8/exec', {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'POST,PATCH,OPTIONS'
+                },
+                body: JSON.stringify(usersToSend)
+            })
+                .then(response => {
+                    console.log('Datos guardados correctamente');
+                })
+                .catch(error => {
+                    console.error('Error al guardar los datos:', error);
+                });
+        }
+
+        document.getElementById("formTexto").addEventListener("submit", function (event) {
+            event.preventDefault();
+            const texto = document.getElementById("texto").value;
+            const tiemposPorIdentificador = sumarTiemposPorIdentificador(texto);
+            mostrarResultados(tiemposPorIdentificador);
+        });
+
+        document.getElementById("guardarDatosBtn").addEventListener("click", function () {
+            const texto = document.getElementById("texto").value;
+            const tiemposPorIdentificador = sumarTiemposPorIdentificador(texto);
+            const usersToSend = [];
+
+            for (const identifier in tiemposPorIdentificador) {
+                const tiempoTotal = tiemposPorIdentificador[identifier].tiempo;
+                const nombre = tiemposPorIdentificador[identifier].nombre;
+                const salida = tiemposPorIdentificador[identifier].salida;
+                const minutos = Math.floor(tiempoTotal % 60);
+                usersToSend.push({ id: identifier, name: nombre, date: salida, hours: Math.floor(tiempoTotal / 60) + ":" + (minutos < 10 ? "0" + minutos : minutos) });
+            }
+
+            enviarDatosGoogleSheets(usersToSend);
+            mostrarResultados(tiemposPorIdentificador);
+        });
+    </script>
+</body>
+
+</html>
